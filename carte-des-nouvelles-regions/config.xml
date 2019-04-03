@@ -1,0 +1,104 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>Execution</name>
+          <description>Build Max : builder le plus des ressources possibles, ne pas s’arrêter aux erreurs. Protection contre une perte de 30 minutes de travail
+Fail fast : builder et s&apos;arreter à la première erreur
+Invalidate : annuler les échecs car une condition extérieure a changé et changerai le résultat</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>Build Max</string>
+              <string>Fail fast</string>
+              <string>Invalidate</string>
+              <string>Skip build</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.8.0">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>https://github.com/lexman/cartes-des-nouvelles-regions.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>*/master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.TimerTrigger>
+      <spec>H 17 * * *</spec>
+    </hudson.triggers.TimerTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>if [ ! -d env ] ; then
+	virtualenv env
+fi
+
+
+if [ ! -d ./env/lib/python2.7/site-packages/tuttle ] ; then
+	. env/bin/activate
+    # pip install https://github.com/lexman/tuttle/archive/master.zip
+	pip install https://github.com/lexman/tuttle/archive/v0.6-dev2.zip
+fi
+</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>. env/bin/activate
+pip install --upgrade https://github.com/lexman/tuttle/archive/master.zip
+
+if [ &quot;$Execution&quot; = &quot;Build Max&quot; ] ; then
+	tuttle run -k -j 4 -t 2d
+fi
+if [ &quot;$Execution&quot; = &quot;Fail fast&quot; ] ; then
+	tuttle run -j 4
+fi
+if [ &quot;$Execution&quot; = &quot;Invalidate&quot; ] ; then
+	tuttle invalidate
+fi
+</command>
+    </hudson.tasks.Shell>
+    <hudson.tasks.Shell>
+      <command>#!/usr/bin/env bash
+# bash to be sure to use .netrc
+
+
+. env/bin/activate
+cd publish
+
+tuttle invalidate
+tuttle run -k -j 4</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>.tuttle/**/**</artifacts>
+      <allowEmptyArchive>false</allowEmptyArchive>
+      <onlyIfSuccessful>false</onlyIfSuccessful>
+      <fingerprint>false</fingerprint>
+      <defaultExcludes>true</defaultExcludes>
+      <caseSensitive>true</caseSensitive>
+    </hudson.tasks.ArtifactArchiver>
+  </publishers>
+  <buildWrappers/>
+</project>
